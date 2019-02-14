@@ -4,7 +4,23 @@
 This packages parses PSSE RAW files in pandas dataframes.
 
 
-## Example
+## Overview
+
+The program is composed of two parts
+
+- `psse.py` 
+	- Reads through the file and changes it's mode based on signals received.  
+	- Stores the data based on the current mode
+- `psse-modes.yaml` 
+	- Describes the structure of the RAW format.  
+	- Can create different mode files to describe different RAW versions (not currently implemented)
+
+The current `psse-modes` file is for a specific RAW format.  There are no gaurentees that it parses the given format or any format correctly.  
+
+If you are planning on using, *Please validate the output*.  Submit any corrections or new modes and pull requests.
+
+
+## Example Usage
 
 ```
 python3 parse.py --input data/ERCOT_SS-18SSWG_2021_SUM1_Final_06252018.RAW  --debug
