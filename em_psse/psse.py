@@ -209,6 +209,7 @@ def parse_raw(in_file_name):
 		logger.debug('{} {} {}'.format(i, len(lines), 'df' in output[i]))
 		if 'df' in output[i]:
 			logger.info('Parsed {} {}'.format(len(output[i]['df']),i))
-			logger.debug("{}".format(lines[0]))
+			if len(lines)>0:
+				logger.debug("{}".format(lines[0]))
 
 	return output
