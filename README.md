@@ -17,8 +17,11 @@ The program is composed of two parts
 
 The current `psse-modes` file is for a specific RAW format.  There are no gaurentees that it parses the given format or any format correctly.  
 
-If you are planning on using, *Please validate the output*.  Submit any corrections or new modes and pull requests.
+If you are planning on using, __validate the output__.  
 
+## Errors/Updates/Corrections
+
+Submit any corrections or new modes and pull requests.
 
 ## Example Usage
 
