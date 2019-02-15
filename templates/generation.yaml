@@ -1,0 +1,43 @@
+# key is required, output is big JSON block, with items nested under key
+key:
+  value: 'gen_key'
+  set: 'id'
+  order: -1
+type:
+  value: 'type'
+  set: 'type'
+rn:
+  template: "team/ao-ercot-test/asset/{{key}}"
+  set: 'rn'
+tags:
+  constant: ['asset','generator']
+  set: 'tags'
+created:
+  constant:
+    ".sv": "timestamp"
+  set: 'created'
+createdby:
+  constant: google-oauth2|108437856006995528186
+  set: 'createdBy'
+parameter:
+  name.name:
+    template: >
+      Generator @{{ bus_name }}
+    strip_whitespace: true
+    order: 500
+  name.description:
+    template: >
+      ID: {{ ID }}
+    strip_whitespace: true
+    order: 500
+  location.wkt:
+    value: geometry
+    wkt: True
+  capacity.capacity:
+    value: p_nom
+    na_value: -999999
+    order: 200
+  generator.bus:
+    template: >
+      ev_sub_{{bus_key}}
+    order: 200

@@ -1,0 +1,58 @@
+# key is required, output is big JSON block, with items nested under key
+key:
+  template: "ev_sub_{{Name}}"
+  set: 'id'
+  order: -1
+type:
+  constant: "asset:network:substation"
+  set: 'type'
+rn:
+  template: "team/ao-ercot-test/asset/{{key}}"
+  set: 'rn'
+tags:
+  constant: ['asset','network','substation']
+  set: 'tags'
+created:
+  constant:
+    ".sv": "timestamp"
+  set: 'created'
+createdby:
+  constant: google-oauth2|108437856006995528186
+  set: 'createdBy'
+parameter:
+  name.name:
+    template: >
+      {{ SubName }}
+    strip_whitespace: true
+    order: 500
+  name.description:
+    template: >
+      Area: {{ AreaName }},
+      Zone: {{ ZONE }},
+      OWNER: {{ OWNER }}
+    strip_whitespace: true
+    order: 500
+  location:
+    value: geometry
+    location: True
+  substation.voltage:
+    value: v_nom
+    na_value: -999999
+    order: 200
+  substation.-type:
+    constant: "parameter:substation:psse"
+  substation.pssename:
+    value: NAME
+    order: 200
+  substation.pssenum:
+    value: buses_i
+    order: 200
+  substation.pssezone:
+    value: ZONE
+    order: 200
+  substation.pssearea:
+    value: AREA
+    order: 200
+  substation.psseowner:
+    value: OWNER
+    order: 200
