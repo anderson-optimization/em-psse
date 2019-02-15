@@ -1,4 +1,4 @@
-from em_psse import parse_raw 
+from em_psse import *
 
 import argparse
 import logging
@@ -36,3 +36,17 @@ for i in raw_data:
 	if 'df' in raw_data[i]:
 		logger.debug('{}'.format(i))
 		logger.debug('\n{}\n'.format(raw_data[i]['df'].head()))
+
+
+formatted=format_all(raw_data)
+
+df_zone=formatted['zone']
+df_tf=formatted['transformer']
+df_gen=formatted['gen']
+df_branch=formatted['branch']
+df_load=formatted['load']
+df_bus=formatted['bus']
+
+
+print(df_tf.head())
+print(df_gen.head())
