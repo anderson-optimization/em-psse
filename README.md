@@ -6,7 +6,7 @@ This packages parses PSSE RAW files in pandas dataframes.
 
 ## Overview
 
-The program is composed of two parts
+The program is composed of 
 
 - `psse.py` 
 	- Reads through the file and changes it's mode based on signals received.  
@@ -14,6 +14,8 @@ The program is composed of two parts
 - `psse-modes.yaml` 
 	- Describes the structure of the RAW format.  
 	- Can create different mode files to describe different RAW versions (not currently implemented)
+- `format_components.py`
+	- An opinonated way to format the RAW data, based on [pypsa](https://pypsa.org/)
 
 The current `psse-modes` file is for a specific RAW format.  There are no gaurentees that it parses the given format or any format correctly.  
 
@@ -22,6 +24,14 @@ If you are planning on using, __validate the output__.
 ## Errors/Updates/Corrections
 
 Submit any corrections or new modes and pull requests.
+
+## Sample scripts
+
+The following are examples of ways to use the module
+
+- `parse.py` parses and prints data
+- `network.py` performs simple network analysis
+- `scripts/process.sh` processes folder of raw files
 
 ## Example Usage
 
