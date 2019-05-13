@@ -73,7 +73,7 @@ def read_transformer(lines,records):
 		for record in line_holder[winding]:
 			rc+=1
 			text = StringIO(''.join(record))
-			dfs[winding].append(pd.read_table(text,sep=','))
+			dfs[winding].append(pd.read_table(text,sep=',', error_bad_lines=False))
 			logger.debug("{} {} {}".format(winding,rc,len(record)))
 			logger.debug("{}".format(record[0]))
 	return dfs

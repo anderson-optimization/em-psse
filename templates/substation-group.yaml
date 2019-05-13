@@ -1,0 +1,32 @@
+# key is required, output is big JSON block, with items nested under key
+key:
+  value: bus_key
+  order: -1
+type:
+  constant: "asset:network:substation"
+  set: 'type'
+rn:
+  value: rn
+  set: 'rn'
+name: 
+  value: bus_name
+  set: 'name'
+voltage:
+  value: v_nom
+  set: voltage
+p_load:
+  value: p_load
+  set: p_load
+p_gen:
+  value: p_gen
+  set: p_gen
+capacity:
+  value: available_capacity
+  set: available_capacity
+pssenum:
+  value: number
+  set: pssenum
+wkt: 
+  value: geometry
+  str: true
+  set: wkt

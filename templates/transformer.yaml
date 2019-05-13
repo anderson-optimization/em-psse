@@ -7,7 +7,7 @@ type:
   constant: "asset:network:line"
   set: 'type'
 rn:
-  template: "team/ao-ercot-test/asset/{{key}}"
+  value: rn
   set: 'rn'
 tags:
   constant: ['asset','network','transmission']

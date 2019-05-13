@@ -13,6 +13,9 @@ import copy
 import itertools
 from collections import OrderedDict
 
+import logging
+
+logger = logging.getLogger('ao.transform')
 
 def build_render_from_string(string):
     env = jinja2.Environment()
@@ -56,7 +59,7 @@ def from_wkt(geom):
         ring=[[point[1],point[0]] for point in geom.coords]
         out['ring']=ring
     else:
-        print(geom.geom_type)
+        logger.debug(geom.geom_type)
         out['wkt']=str(geom)
     return out
 
@@ -66,35 +69,36 @@ class Transform:
     render={}
 
     def __init__(self,template_file):
-        print("Loading Template",template_file)
+        logger.debug("Loading Template",template_file)
 
         with open(template_file,'r') as in_file:
             template=yaml.load(in_file)
 
         ## flatten parameters
-        for i in template['parameter']:
-            obj=template['parameter'][i]
-            obj['set']='parameter.'+i
-            print('Parameters',i,obj)
-            template[i]=obj
-        del template['parameter']
+        if 'parameter' in template:
+            for i in template['parameter']:
+                obj=template['parameter'][i]
+                obj['set']='parameter.'+i
+                logger.debug('Parameters',i,obj)
+                template[i]=obj
+            del template['parameter']
 
         for i in template:
             if 'template' in template[i]:
-                print('Building Render',i)
+                logger.debug('Building Render',i)
                 self.render[i]=build_render_from_string(template[i]['template'])
 
         ## build renders
-        print(template)
+        logger.debug(template)
 
         self.template=OrderedDict(sorted(template.items(),key=lambda item: item[1].get('order',100)))
-        print(self.template)
+        logger.debug(self.template)
         ## load renders
 
     def transform_item(self,item):
         out=copy.copy(self.base)
         for key in self.template:
-            #print item
+            #logger.debug item
             t = self.template[key]
             value=None
             ## Get Value
@@ -131,7 +135,7 @@ class Transform:
 
             if 'location' in t:
                 value=from_wkt(value)
-            if 'wkt' in t:
+            if 'str' in t:
                 value=str(value)
 
             nested_set(item,key,value)
@@ -140,9 +144,9 @@ class Transform:
         return item['key'],out
 
     def to_file(self,items,outfilename):
-        print('Output items to',outfilename)
+        logger.debug('Output items to',outfilename)
         with open(outfilename, 'w') as outfile:   
-            print("Starting Render")
+            logger.debug("Starting Render")
             count=0 
             outdict={}
             for item in items:
@@ -150,10 +154,10 @@ class Transform:
                 outdict[key]=transformed
                 count+=1
                 if count%1000==0:
-                    print(count)
+                    logger.debug(count)
 
             json.dump(outdict,outfile)
-            print("Render Complete")
-        print("Transformation Complete")
+            logger.debug("Render Complete")
+        logger.info("Transformation Complete")
 
 

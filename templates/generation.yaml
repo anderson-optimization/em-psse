@@ -7,7 +7,7 @@ type:
   value: 'type'
   set: 'type'
 rn:
-  template: "team/ao-ercot-test/asset/{{key}}"
+  template: "team/ao-caiso-system/asset/{{key}}"
   set: 'rn'
 tags:
   constant: ['asset','generator']

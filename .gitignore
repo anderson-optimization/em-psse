@@ -5,3 +5,4 @@ ev.py
 ev.sh
 *.h5
 *.csv
+*.pyc

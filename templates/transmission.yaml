@@ -1,24 +1,20 @@
 # key is required, output is big JSON block, with items nested under key
 key:
-  template: "ev_line_{{itemkey}}"
+  value: branch_key
   set: 'id'
   order: -1
 type:
   constant: "asset:network:line"
   set: 'type'
 rn:
-  template: "team/ao-ercot-test/asset/{{key}}"
+  value: rn
   set: 'rn'
 tags:
   constant: ['asset','network','transmission']
   set: 'tags'
-created:
-  constant:
-    ".sv": "timestamp"
-  set: 'created'
-createdby:
-  constant: google-oauth2|108437856006995528186
-  set: 'createdBy'
+meta_source:
+  set: 'meta.source'
+  constant: "EV"
 parameter:
   name.name:
     template: >
@@ -27,7 +23,7 @@ parameter:
     order: 500
   location.wkt:
     value: geometry
-    wkt: True
+    str: true
   transmission.voltage:
     value: voltage
     order: 200
@@ -37,12 +33,18 @@ parameter:
     order: 210
   transmission.bus0:
     template: >
-      ev_sub_{{bus0_key}}
+      {{bus0_key}}
   transmission.bus1:
     template: >
-      ev_sub_{{bus1_key}}
+      {{bus1_key}}
   transmission.capacity:
-    value: s_nom
+    value: s_nom_A
+  transmission.s_nom_A:
+    value: s_nom_A
+  transmission.s_nom_B:
+    value: s_nom_B
+  transmission.s_nom_B:
+    value: s_nom_C
   transmission.r:
     value: r
   transmission.x:
@@ -50,6 +52,6 @@ parameter:
   transmission.b:
     value: b
   transmission.length:
-    value: LEN
+    value: length
   transmission.-type:
     constant: "parameter:transmission:psse"

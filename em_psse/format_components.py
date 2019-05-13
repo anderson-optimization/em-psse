@@ -2,6 +2,7 @@
 import logging
 logger = logging.getLogger('em.format_components')
 
+import pandas as pd
 
 def get_volt(cw,nom=None,wind=None):
 	if nom == None:
@@ -30,8 +31,8 @@ def format_bus(df):
 def format_branch(df):
 	logger.debug('Formatting branch {}'.format(len(df)))		
 	df.index = 'branch'+df['I'].astype(str) + '_'+df['J'].astype(str) + '_' + df['CKT'].str.replace(' ','').str.replace("'",'')
-	df = df.rename(index=str,columns={'I':'bus0','J':'bus1','X':'x','R':'r','B':'b','RATEA':'s_nom_A','RATEB':'s_nom_B','RATEC':'s_nom_C'})
-	return df[['bus0','bus1','x','r','b','s_nom_A','s_nom_B','s_nom_C']]
+	df = df.rename(index=str,columns={'I':'bus0','J':'bus1','X':'x','R':'r','B':'b','RATEA':'s_nom_A','RATEB':'s_nom_B','RATEC':'s_nom_C','CKT':'circuit','LEN':'length'})
+	return df[['bus0','bus1','x','r','b','s_nom_A','s_nom_B','s_nom_C','length','circuit']]
 
 def format_gen(df):
 	logger.debug('Formatting gen {}'.format(len(df)))
@@ -85,7 +86,12 @@ def format_transformer(df,s_system=100):
 			pass
 		else:
 			# watts to MVA, unit power factor
-			r = r/s_unit/1000000
+			if s_unit>0:
+				r = r/s_unit/1000000
+			else:
+				logger.warning('Nominal Power of transformer is 0')
+				#print(item)
+				r = r/1000000
 		return r
 
 	t2=df[df['K']==0].copy()

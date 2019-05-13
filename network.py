@@ -97,6 +97,12 @@ def analyze_bus(df_bus):
 			return fn(df[df.bus==row.bus])
 		return get
 
+	print('DF_BUS',df_bus.head())
+	print('columns',df_bus.columns)
+
+	print('DF_GEN',df_gen.head())
+	print('columns',df_gen.columns)
+
 	df_bus['zone_name']=df_bus.apply(lambda x: df_zone.loc[df_zone.zone==x.zone,'zone_name'].iloc[0],axis=1)
 	df_bus['area_name']=df_bus.apply(lambda x: df_area.loc[df_area.area==x.area,'area_name'].iloc[0],axis=1)
 	df_bus['owner_name']=df_bus.apply(lambda x: df_owner.loc[df_owner.owner==x.owner,'owner_name'].iloc[0],axis=1)
@@ -111,6 +117,8 @@ def analyze_bus(df_bus):
 
 	return df_bus
 
+print('DF_Bus',df_bus)
+
 store_name='{name}_bus_analysis'.format(name=args.name)
 try:
 	if args.refresh:	raise Exception
@@ -121,7 +129,7 @@ except Exception as e:
 	store.put(store_name,df_bus)
 
 
-geo_name='{}_geometry'.format(store_name)
+geo_name='{}_bus_geometry'.format(args.name)
 try:
 	bus_geometry = store.get(geo_name)
 	print('bus',len(df_bus),df_bus.head())
@@ -129,6 +137,7 @@ try:
 	merged=df_bus.merge(bus_geometry,left_on='bus',right_on='number')
 	print('merged',len(merged),merged.head())
 	df_bus=merged
+
 except Exception as e:
 	print('No geometry found {}'.format(geo_name))
 
@@ -165,7 +174,7 @@ if args.export:
 		('transformer',df_tf),
 		('gen',df_gen)
 	]
-
 	for i in output:
 		store_name='{name}_{component}'.format(name=args.name,component=i[0])
+		print('Storing',store_name)
 		store.put(store_name,i[1])

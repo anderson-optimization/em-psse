@@ -1,0 +1,24 @@
+# key is required, output is big JSON block, with items nested under key
+key:
+  value: branch_key
+  order: -1
+type:
+  constant: "asset:network:line"
+  set: 'type'
+rn:
+  value: rn
+  set: 'rn'
+name: 
+  template: >
+      {{bus0_name}} -> {{bus1_name}} - c:{{circuit}} - {{voltage}}kV
+  set: 'name'
+voltage:
+  value: voltage
+  set: voltage
+capacity:
+  value: s_nom_A
+  set: capacity
+wkt: 
+  value: geometry
+  str: true
+  set: wkt
