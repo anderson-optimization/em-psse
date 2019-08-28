@@ -134,12 +134,13 @@ try:
 	bus_geometry = store.get(geo_name)
 	print('bus',len(df_bus),df_bus.head())
 	print('geo',len(bus_geometry),bus_geometry.head())
-	merged=df_bus.merge(bus_geometry,left_on='bus',right_on='number')
+	merged=df_bus.merge(bus_geometry,left_index=True,right_on='number')
 	print('merged',len(merged),merged.head())
 	df_bus=merged
 
 except Exception as e:
 	print('No geometry found {}'.format(geo_name))
+	print(e)
 
 
 

@@ -43,6 +43,11 @@ parser.add_argument(
 	help="Be verbose",
 	action="store_const", dest="loglevel", const=logging.INFO,
 )
+parser.add_argument(
+	'-t', '--team',
+	help="Team for ao system",
+	default="ao-ercot-tx-system"
+)
 
 parser.add_argument('--store',
 	nargs='?', 
@@ -90,7 +95,7 @@ bus_geo={}
 df_bus_list=[]
 df_line_list=[]
 
-team="ao-ercot-tx-system"
+team=args.team
 
 def get_bus_key(num):
 	return 'mmwg_bus_'+str(num)
@@ -219,7 +224,7 @@ df_bus.drop_duplicates(subset='bus_key',inplace=True)
 
 bus_transform.to_file(df_bus.itertuples(),bus_outfile+name.lower()+'.json')
 
-with open('bus-data'+name.lower()+'.json','w') as out_file:
+with open('bus-data-'+name.lower()+'.json','w') as out_file:
 	json.dump(data_bus,out_file)
 
 # Transmission

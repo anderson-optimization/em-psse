@@ -3,6 +3,10 @@
 
 This packages parses PSSE RAW files in pandas dataframes.
 
+## Alternative Packages
+
+- [lanl-ansi/grg-pssedata](https://github.com/lanl-ansi/grg-pssedata)
+
 
 ## Overview
 
@@ -173,4 +177,11 @@ DEBUG:em.parse_raw:
 2  6  '1 '       1    11    11  5.095  1.523  0.0  0.0  0.0  0.0    115  1  0
 3  7  '1 '       1    11    11  8.897  1.020  0.0  0.0  0.0  0.0    115  1  0
 4  8  '1 '       1    11    11  3.709  0.831  0.0  0.0  0.0  0.0    115  1  0
+```
+
+
+### Example jq join
+
+```
+jq -s '.[0] * .[1]' bus-ercot_ss-18sswg_2021_sum1.json line-ercot_ss-18sswg_2021_sum1.json > ercot_ss-18sswg_2021_sum1.json
 ```

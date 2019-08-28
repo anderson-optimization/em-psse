@@ -1,4 +1,4 @@
-for i in data/*.raw; 
+for i in data/ERCOT*.raw; 
 do 
 	bn=$(basename $i)
 	name=${bn%.*}
