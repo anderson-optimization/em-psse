@@ -74,11 +74,11 @@ def format_transformer(df,s_system=100):
 			s_unit = item[s_nom_field]
 			x = item[field]
 			if cz == 1:
-				# In system base, convert to unit base
-				x = x*s_unit/s_system
-			elif cz  == 2:
-				# in unit base
+				# In system base already
 				pass
+			elif cz  == 2:
+				# in unit base, convert to system
+				x = x*s_unit/s_system
 			else:
 				pass
 			return x
@@ -90,11 +90,11 @@ def format_transformer(df,s_system=100):
 			s_unit = item[s_nom_field]
 			r = item[field]
 			if cz == 1:
-				# In system base, convert to unit base
-				r = r*s_unit/s_system
-			elif cz  == 2:
-				# in unit base
+				# In system base already
 				pass
+			elif cz  == 2:
+				# in unit base, convert to system
+				r = r*s_system/s_unit
 			else:
 				# watts to MVA, unit power factor
 				if s_unit>0:
