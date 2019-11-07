@@ -1,7 +1,8 @@
-for i in data/ERCOT*.raw; 
+for i in ev/ERCOT*.raw; 
 do 
 	bn=$(basename $i)
 	name=${bn%.*}
-	echo $name $i
-	python3 network.py --input "$i" --name "$name" --export
+	echo "Parse Raw ${name} $i"
+	echo "python3 lib/em-psse/network.py --input \"$i\" --name \"${name}\" --export"
+	python3 lib/em-psse/network.py --input "$i" --name "$name" --export
 done

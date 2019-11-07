@@ -5,6 +5,8 @@ from shapely.geometry import Point
 import matplotlib.pyplot as plt
 
 
+import sys
+print(sys.argv)
 import argparse
 import logging
 
@@ -14,7 +16,7 @@ parser = argparse.ArgumentParser(description='Read EV Geometry')
 
 parser.add_argument('--input',
 	help="Input RAW file")
-parser.add_argument('--name',
+parser.add_argument('-n','--name',
 	help="Name for data in storage",
 	default="network")
 
@@ -42,6 +44,7 @@ parser.add_argument(
 
 
 args = parser.parse_args()
+print(args.name)
 logging.basicConfig(level=args.loglevel)
 store = pd.HDFStore(args.store)
 
@@ -69,12 +72,13 @@ df_location=df_location[['ev_name','sub_long','sub_lat','long','lat','number','v
 
 print(df_location.head())
 print(df_location.columns)
-df_location.index=df_location.bus
+df_location.index=df_location.number
 if args.plot:
 	geo_location = gp.GeoDataFrame(df_location,geometry=gp.points_from_xy(df_location.long,df_location.lat))
 	geo_location.plot()
 	plt.show()
 
 store_name='{name}_bus_geometry'.format(name=args.name)
+print(args.name)
 print('write to {}'.format(store_name))
 store.put(store_name,df_location)

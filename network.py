@@ -70,6 +70,10 @@ df_gen=formatted['gen']
 df_branch=formatted['branch']
 df_load=formatted['load']
 df_bus=formatted['bus']
+df_twodc=formatted['twodc']
+
+print(formatted.keys())
+
 
 df_branch['edge']=list(zip(df_branch.bus0,df_branch.bus1))
 df_tf['edge']=list(zip(df_tf.bus0,df_tf.bus1))
@@ -134,7 +138,7 @@ try:
 	bus_geometry = store.get(geo_name)
 	print('bus',len(df_bus),df_bus.head())
 	print('geo',len(bus_geometry),bus_geometry.head())
-	merged=df_bus.merge(bus_geometry,left_index=True,right_on='number')
+	merged=df_bus.merge(bus_geometry,left_index=True,right_index=True)
 	print('merged',len(merged),merged.head())
 	df_bus=merged
 
@@ -173,7 +177,9 @@ if args.export:
 		('bus',df_bus),
 		('branch',df_branch),
 		('transformer',df_tf),
-		('gen',df_gen)
+		('load',df_load),
+		('gen',df_gen),
+		('twodc',df_twodc)
 	]
 	for i in output:
 		store_name='{name}_{component}'.format(name=args.name,component=i[0])
