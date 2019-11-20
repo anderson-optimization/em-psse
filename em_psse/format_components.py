@@ -4,18 +4,6 @@ logger = logging.getLogger('em.format_components')
 
 import pandas as pd
 
-def get_volt(cw,nom=None,wind=None):
-	if nom == None:
-		raise ValueException('No nominal voltage value')
-	if wind == None:
-		raise ValueException('No winding value')
-	if cw == 1 or cw == 3:
-		return wind * nom
-	elif cw == 2:
-		return wind
-	else:
-		raise Exception('Unknown')
-
 def format_load(df):
 	logger.debug('Formatting load {}'.format(len(df)))
 	df.index = 'load'+df['I'].astype(str) + '_' + df['ID'].str.replace(' ','').str.replace("'",'')
@@ -66,19 +54,73 @@ def format_twodc(df):
 	df['p_min_pu']=-1
 	return df[['bus0','bus1','p_nom','p_min_pu']]
 
+def format_switchedshunt(df):
+	logger.debug('Formatting switchedshunt {}'.format(len(df)))
+	df.index = 'sshunt'+df['I'].astype(str) # this appears to be unique, if not, we have to add some ID that is not in PSSE Raw file
+	# use binit as b, this removes switched behavior, which is not ideal
+	# however, incorporating switching into pypsa seems nontrivial
+
+	# it actually seems like B defined in RAW is in MVar and b in pypsa is Siemens, need to figure out different implementation
+	df = df.rename(index=str,columns={'I':'bus','BINIT':'b'})
+	return df[['bus','b']]
+
+def format_fixedshunt(df):
+	logger.debug('Formatting fixedshunt {}'.format(len(df)))
+	df.index = 'fshunt'+df['I'].astype(str) # this appears to be unique, if not, we have to add some ID that is not in PSSE Raw file
+
+	# it actually seems like B defined in RAW is in MVar and b in pypsa is Siemens, need to figure out different implementation
+	df = df.rename(index=str,columns={'I':'bus','B':'b','STATUS':'status'})
+	return df[['bus','b','status']]
+
+
 def format_transformer(df,s_system=100):
 	logger.debug('Formatting transformers {}'.format(len(df)))
+
+	## PSSE Raw file
+	## 
+	## Lines have x and r defined in pu
+	## 		Zero impedence lines are special
+	## 		- We should throw a error/warning on them
+	## Transformers
+	# 	The impedance data I/O code that defines the units in which the winding imped-
+	# 	ances R1-2, X1-2, R2-3, X2-3, R3-1 and X3-1 are specified: 
+	# 	1 for resistance and reactance in pu on system base quantities
+	# 	2 for resistance and reactance in pu on a specified base MVA and winding bus base voltage
+	# 	3 for transformer load loss in watts and impedance magnitude
+	# 		 in pu on a specified base MVA and 
+	# 		 winding bus base voltage. CZ = 1 by default.
+
+	## Pypsa 
+	## Line component expects x in non pu quantities 
+	## -- This format code does not have access to voltage as its a bus quantity
+	## -- Should put in as x_pu so don't naively mix up as x in non pu
+	## -- code for conversion in pypsa
+	#		> network.lines["v_nom"] = network.lines.bus0.map(network.buses.v_nom)
+	#    	> network.lines["x_pu"] = network.lines.x/(network.lines.v_nom**2)
+    #		> network.lines["r_pu"] = network.lines.r/(network.lines.v_nom**2)
+	#
+	## Transformer expects x in pu with base as s_nom (s_unit)
+	## -- code for conversion in pypsa
+	#		> #convert transformer impedances from base power s_nom to base = 1 MVA
+    #		> network.transformers["x_pu"] = network.transformers.x/network.transformers.s_nom
+    #		> network.transformers["x_pu_eff"] = network.transformers["x_pu"]* network.transformers["tap_ratio"]
+    #	where tap_ratio="Ratio of per unit voltages at each bus for tap changed."
+    #	  and tap_side="Defines if tap changer is modelled at the primary 0 side 
+    #	  				(usually high-voltage) or the secondary 1 side (usually low voltage) 
+    #	  				(must be 0 or 1, defaults to 0). Ignored if type defined."
+
+
 	def get_x_field(field,s_nom_field='s_nom'):
 		def get_x(item):
 			cz = item['CZ']
 			s_unit = item[s_nom_field]
 			x = item[field]
 			if cz == 1:
-				# In system base already
-				pass
-			elif cz  == 2:
-				# in unit base, convert to system
+				# In system base, convert to unit
 				x = x*s_unit/s_system
+			elif cz  == 2:
+				# in unit base
+				pass
 			else:
 				pass
 			return x
@@ -90,11 +132,11 @@ def format_transformer(df,s_system=100):
 			s_unit = item[s_nom_field]
 			r = item[field]
 			if cz == 1:
-				# In system base already
-				pass
+				# In system base, convert to unit
+				r = r*s_unit/s_system
 			elif cz  == 2:
-				# in unit base, convert to system
-				r = r*s_system/s_unit
+				# in unit base
+				pass
 			else:
 				# watts to MVA, unit power factor
 				if s_unit>0:
@@ -106,6 +148,25 @@ def format_transformer(df,s_system=100):
 			return r
 		return get_r
 
+
+	def get_winding(nom_field,wind_field):
+		def _get_winding(item):
+			nom = item[nom_field]
+			wind = item[wind_field]
+			cw = item['CW']
+			if nom == None:
+				raise ValueException('No nominal voltage value')
+			if wind == None:
+				raise ValueException('No winding value')
+			if cw == 1 or cw == 3:
+				return wind 
+			elif cw == 2:
+				return wind / nom
+			else:
+				raise Exception('Unknown')
+		return _get_winding
+
+
 	t2=df[df['K']==0].copy()
 	t3=df[df['K']!=0].copy()
 
@@ -115,15 +176,15 @@ def format_transformer(df,s_system=100):
 	t2['s_nom']=t2['s_nom_A']
 	t2['v0']=t2['NOMV1']
 	t2['v1']=t2['NOMV2']
-	t2['wind0']=t2['WINDV1']
-	t2['wind1']=t2['WINDV2']
+	t2['wind0']=t2.apply(get_winding('v0','WINDV1'),axis=1)
+	t2['wind1']=t2.apply(get_winding('v1','WINDV2'),axis=1)
 	t2['r'] = t2.apply(get_r_field('r'),axis=1)
 	t2['x'] = t2.apply(get_x_field('x'),axis=1)
-	trans_cols=['bus0','bus1','r','x','name','s_nom','s_nom_A','s_nom_B','s_nom_C','phase_shift','v0','v1']
+	trans_cols=['bus0','bus1','r','x','name','s_nom','s_nom_A','s_nom_B','s_nom_C','phase_shift','v0','v1','wind0','wind1']
 	t2=t2[trans_cols]
 	logger.debug('Created {} 2 winding transformers'.format(len(t2)))
 
-	## Three winding transformers
+	## Three winding transformers, perform delta to wye conversion
 	if len(t3)>0:
 		t3['x12']=t3.apply(get_x_field('X1-2','SBASE1-2'),axis=1)
 		t3['x23']=t3.apply(get_x_field('X2-3','SBASE2-3'),axis=1)
@@ -160,15 +221,21 @@ def format_transformer(df,s_system=100):
 		t3['trans_id']=t3['I'].astype(str)+'_'+t3['J'].astype(str)+'_'+t3['K'].astype(str)+'_'+t3['CKT'].astype(str).str.replace("'",'').str.replace(" ","")
 		t3['aux_bus']='aux'+t3['trans_id']
 		t3['aux_bus_v_nom']=t3['NOMV1']
+		t3['aux_bus_wind']=1
 		t3['v_nom_1']=t3['NOMV1']
 		t3['v_nom_2']=t3['NOMV2']
 		t3['v_nom_3']=t3['NOMV3']
+		t3['wind1']=t3.apply(get_winding('v_nom_1','WINDV1'),axis=1)
+		t3['wind2']=t3.apply(get_winding('v_nom_2','WINDV2'),axis=1)
+		t3['wind3']=t3.apply(get_winding('v_nom_3','WINDV3'),axis=1)
 
 		t3_1 = t3.copy().rename(index=str,columns={'I':'bus0','x1':'x','r1':'r','RATA1':'s_nom_A','RATB1':'s_nom_B','RATC1':'s_nom_C','ANG1':'phase_shift'})
 		t3_1['bus1']=t3_1['aux_bus']
 		t3_1['s_nom']=t3_1['s_nom_A']
 		t3_1['v0']=t3_1['v_nom_1']
 		t3_1['v1']=t3_1['aux_bus_v_nom']
+		t3_1['wind0']=t3_1['wind1']
+		t3_1['wind1']=t3_1['aux_bus_wind']
 		t3_1['name'] = 'three_wind_I_'+t3_1['trans_id']
 		t3_1=t3_1[trans_cols]
 		
@@ -177,6 +244,8 @@ def format_transformer(df,s_system=100):
 		t3_2['s_nom']=t3_2['s_nom_A']
 		t3_2['v0']=t3_2['aux_bus_v_nom']
 		t3_2['v1']=t3_2['v_nom_2']
+		t3_2['wind0']=t3_2['aux_bus_wind']
+		t3_2['wind1']=t3_2['wind2']
 		t3_2['name'] = 'three_wind_J_'+t3_2['trans_id']
 		t3_2=t3_2[trans_cols]
 		
@@ -185,6 +254,8 @@ def format_transformer(df,s_system=100):
 		t3_3['s_nom']=t3_3['s_nom_A']
 		t3_3['v0']=t3_3['aux_bus_v_nom']
 		t3_3['v1']=t3_3['v_nom_3']
+		t3_3['wind0']=t3_3['aux_bus_wind']
+		t3_3['wind1']=t3_3['wind3']
 		t3_3['name'] = 'three_wind_K_'+t3_3['trans_id']
 		t3_3=t3_3[trans_cols]
 		
@@ -212,7 +283,9 @@ format_dict={
 	'zone':format_zone,
 	'owner':format_owner,
 	'transformer':format_transformer,
-	'twodc':format_twodc
+	'twodc':format_twodc,
+	'switchedshunt':format_switchedshunt,
+	'fixedshunt':format_fixedshunt
 }
 
 def format_all(raw_data):
