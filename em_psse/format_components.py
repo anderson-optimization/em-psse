@@ -1,4 +1,4 @@
-
+import sys
 import logging
 logger = logging.getLogger('em.format_components')
 
@@ -7,8 +7,8 @@ import pandas as pd
 def format_load(df):
 	logger.debug('Formatting load {}'.format(len(df)))
 	df.index = 'load'+df['I'].astype(str) + '_' + df['ID'].str.replace(' ','').str.replace("'",'')
-	df = df.rename(index=str,columns={'I':'bus','PL':'p_set','QL':'q_set'})
-	return df[['bus','p_set','q_set']]
+	df = df.rename(index=str,columns={'I':'bus','PL':'p_set','QL':'q_set','STATUS':'status'})
+	return df[['bus','p_set','q_set','status']]
 
 def format_bus(df):
 	logger.debug('Formatting bus {}'.format(len(df)))		
@@ -19,14 +19,14 @@ def format_bus(df):
 def format_branch(df):
 	logger.debug('Formatting branch {}'.format(len(df)))		
 	df.index = 'branch'+df['I'].astype(str) + '_'+df['J'].astype(str) + '_' + df['CKT'].str.replace(' ','').str.replace("'",'')
-	df = df.rename(index=str,columns={'I':'bus0','J':'bus1','X':'x','R':'r','B':'b','RATEA':'s_nom_A','RATEB':'s_nom_B','RATEC':'s_nom_C','CKT':'circuit','LEN':'length'})
-	return df[['bus0','bus1','x','r','b','s_nom_A','s_nom_B','s_nom_C','length','circuit']]
+	df = df.rename(index=str,columns={'I':'bus0','J':'bus1','X':'x','R':'r','B':'b','RATEA':'s_nom_A','RATEB':'s_nom_B','RATEC':'s_nom_C','CKT':'circuit','LEN':'length','ST':'status'})
+	return df[['bus0','bus1','x','r','b','s_nom_A','s_nom_B','s_nom_C','length','circuit','status']]
 
 def format_gen(df):
 	logger.debug('Formatting gen {}'.format(len(df)))
 	df.index = 'gen'+df['I'].astype(str) + '_' +df['ID'].str.replace(' ','').str.replace("'",'')
-	df = df.rename(index=str,columns={'I':'bus','PT':'p_nom','PG':'p_gen','QG':'q_gen','QT':'q_nom'})
-	return df[['bus','p_nom','p_gen','q_gen','q_nom']]
+	df = df.rename(index=str,columns={'I':'bus','PT':'p_nom','PG':'p_gen','PB':'p_min','QG':'q_gen','QT':'q_nom','QB':'q_min','STAT':'status'})
+	return df[['bus','p_nom','p_gen','p_min','q_gen','q_nom','q_min','status']]
 
 def format_area(df):
 	logger.debug('Formatting area {}'.format(len(df)))
@@ -90,6 +90,13 @@ def format_transformer(df,s_system=100):
 	# 		 in pu on a specified base MVA and 
 	# 		 winding bus base voltage. CZ = 1 by default.
 
+	# Phase angle shift
+	# 	The winding one phase shift angle in degrees. ANG1 is positive for a positive
+	# 		phase shift from the winding one side to the winding two side (for a two-winding
+	# 		transformer), or from the winding one side to the 'T' (or star) point bus (for a three-
+	# 		winding transformer). ANG1 must be greater than -180.0 and less than or equal to
+	# 		+1 80.0. ANG1 = 0.0 by default.
+
 	## Pypsa 
 	## Line component expects x in non pu quantities 
 	## -- This format code does not have access to voltage as its a bus quantity
@@ -112,17 +119,28 @@ def format_transformer(df,s_system=100):
 
 	def get_x_field(field,s_nom_field='s_nom'):
 		def get_x(item):
+			# if 'I' in item and item.I == 5966 and item.J == 79690:
+			# 	print('row')
+			# 	for c in item.index:
+			# 		print(c,item[c])
 			cz = item['CZ']
 			s_unit = item[s_nom_field]
 			x = item[field]
 			if cz == 1:
-				# In system base, convert to unit
-				x = x*s_unit/s_system
+				# In system base, convert to 1 MVA base
+				x = x/s_system
 			elif cz  == 2:
-				# in unit base
-				pass
+				# in unit base, convert to 1 MVA base
+				x = x/s_unit
 			else:
-				pass
+				# Load loss in watts, impedence in unit base
+				x = x/s_unit
+			if x == 0:
+				logger.error('Impedence X is 0')
+			elif x < 0:
+				logger.error('Impedence X is < 0')
+			elif x > 10:
+				logger.error('Impedence is pretty high, X > 10')
 			return x
 		return get_x
 
@@ -133,18 +151,13 @@ def format_transformer(df,s_system=100):
 			r = item[field]
 			if cz == 1:
 				# In system base, convert to unit
-				r = r*s_unit/s_system
+				r = r/s_system
 			elif cz  == 2:
 				# in unit base
-				pass
+				r = r/s_unit
 			else:
-				# watts to MVA, unit power factor
-				if s_unit>0:
-					r = r/s_unit/1000000
-				else:
-					logger.warning('Nominal Power of transformer is 0')
-					#print(item)
-					r = r/1000000
+				# watts to MVA w/ 1 MVA base, unit power factor
+				r = r/1000000
 			return r
 		return get_r
 
@@ -172,15 +185,15 @@ def format_transformer(df,s_system=100):
 
 	## Two winding transformers
 	t2['name'] = ('two_wind_'+t2['I'].astype(str) + '_' +t2['J'].astype(str) + '_' + t2['CKT']).str.replace(' ','').str.replace("'",'')
-	t2 = t2.rename(index=str,columns={'I':'bus0','J':'bus1','X1-2':'x','R1-2':'r','RATA1':'s_nom_A','RATB1':'s_nom_B','RATC1':'s_nom_C','ANG1':'phase_shift'})
+	t2 = t2.rename(index=str,columns={'I':'bus0','J':'bus1','X1-2':'x','R1-2':'r','RATA1':'s_nom_A','RATB1':'s_nom_B','RATC1':'s_nom_C','ANG1':'phase_shift','STAT':'status'})
 	t2['s_nom']=t2['s_nom_A']
 	t2['v0']=t2['NOMV1']
 	t2['v1']=t2['NOMV2']
 	t2['wind0']=t2.apply(get_winding('v0','WINDV1'),axis=1)
 	t2['wind1']=t2.apply(get_winding('v1','WINDV2'),axis=1)
-	t2['r'] = t2.apply(get_r_field('r'),axis=1)
-	t2['x'] = t2.apply(get_x_field('x'),axis=1)
-	trans_cols=['bus0','bus1','r','x','name','s_nom','s_nom_A','s_nom_B','s_nom_C','phase_shift','v0','v1','wind0','wind1']
+	t2['r'] = t2.apply(get_r_field('r','SBASE1-2'),axis=1)
+	t2['x'] = t2.apply(get_x_field('x','SBASE1-2'),axis=1)
+	trans_cols=['bus0','bus1','r','x','name','s_nom','s_nom_A','s_nom_B','s_nom_C','phase_shift','v0','v1','wind0','wind1','status']
 	t2=t2[trans_cols]
 	logger.debug('Created {} 2 winding transformers'.format(len(t2)))
 
@@ -192,31 +205,23 @@ def format_transformer(df,s_system=100):
 		t3['r12']=t3.apply(get_r_field('R1-2','SBASE1-2'),axis=1)
 		t3['r23']=t3.apply(get_r_field('R2-3','SBASE2-3'),axis=1)
 		t3['r31']=t3.apply(get_r_field('R3-1','SBASE3-1'),axis=1)
-		
-		t3['a']=t3['r12']+t3['r23']+t3['r31']
-		t3['b']=t3['x12']+t3['x23']+t3['x31']
-		
-		t3['alpha1']=t3['r12']*t3['r31']-t3['x12']*t3['x31']
-		t3['beta1']=t3['r31']*t3['x12']+t3['r12']*t3['x31']
 
-		t3['alpha2']=t3['r12']*t3['r23']-t3['x12']*t3['x23']
-		t3['beta2']=t3['r23']*t3['x12']+t3['r12']*t3['x23']
-		
-		t3['alpha3']=t3['r23']*t3['r31']-t3['x23']*t3['x31']
-		t3['beta3']=t3['r31']*t3['x23']+t3['r23']*t3['x31']
+		# These are power world calculations to convert impedence.  We actually want in unit base though.  Convert in following section.
+		t3['r1']=s_system/2 * (t3['r12']/t3['SBASE1-2'] - t3['r23']/t3['SBASE2-3'] + t3['r31']/t3['SBASE3-1'])
+		t3['x1']=s_system/2 * (t3['x12']/t3['SBASE1-2'] - t3['x23']/t3['SBASE2-3'] + t3['x31']/t3['SBASE3-1'])
 
-		t3['denom']=t3['a']*t3['a']+t3['b']*t3['b']
+		t3['r2']=s_system/2 * (t3['r12']/t3['SBASE1-2'] + t3['r23']/t3['SBASE2-3'] - t3['r31']/t3['SBASE3-1'])
+		t3['x2']=s_system/2 * (t3['x12']/t3['SBASE1-2'] + t3['x23']/t3['SBASE2-3'] - t3['x31']/t3['SBASE3-1'])
 
-		t3['r1']=(t3['a']*t3['alpha1']+t3['b']*t3['beta1'])/t3['denom']
-		t3['x1']=(t3['a']*t3['beta1']-t3['b']*t3['alpha1'])/t3['denom']
+		t3['r3']=s_system/2 * (-t3['r12']/t3['SBASE1-2'] + t3['r23']/t3['SBASE2-3'] + t3['r31']/t3['SBASE3-1'])
+		t3['x3']=s_system/2 * (-t3['x12']/t3['SBASE1-2'] + t3['x23']/t3['SBASE2-3'] + t3['x31']/t3['SBASE3-1'])
 
-		t3['r2']=(t3['a']*t3['alpha2']+t3['b']*t3['beta2'])/t3['denom']
-		t3['x2']=(t3['a']*t3['beta2']-t3['b']*t3['alpha2'])/t3['denom']
+		# out = t3.iloc[266].to_dict()
 
-		t3['r3']=(t3['a']*t3['alpha3']+t3['b']*t3['beta3'])/t3['denom']
-		t3['x3']=(t3['a']*t3['beta3']-t3['b']*t3['alpha3'])/t3['denom']
-		t3[['r12','r23','r31','x12','x23','x31','a','b','alpha1','beta1','alpha2','beta2','alpha3','beta3','r1','r2','r3','x1','x2','x3']].to_csv('t3ex.csv')
-		
+		# for k in out:
+		# 	print(k,out[k])
+
+		# sys.exit()
 
 		t3['trans_id']=t3['I'].astype(str)+'_'+t3['J'].astype(str)+'_'+t3['K'].astype(str)+'_'+t3['CKT'].astype(str).str.replace("'",'').str.replace(" ","")
 		t3['aux_bus']='aux'+t3['trans_id']
@@ -229,9 +234,11 @@ def format_transformer(df,s_system=100):
 		t3['wind2']=t3.apply(get_winding('v_nom_2','WINDV2'),axis=1)
 		t3['wind3']=t3.apply(get_winding('v_nom_3','WINDV3'),axis=1)
 
-		t3_1 = t3.copy().rename(index=str,columns={'I':'bus0','x1':'x','r1':'r','RATA1':'s_nom_A','RATB1':'s_nom_B','RATC1':'s_nom_C','ANG1':'phase_shift'})
+		t3_1 = t3.copy().rename(index=str,columns={'I':'bus0','x1':'x','r1':'r','RATA1':'s_nom_A','RATB1':'s_nom_B','RATC1':'s_nom_C','ANG1':'phase_shift','STAT':'status'})
 		t3_1['bus1']=t3_1['aux_bus']
 		t3_1['s_nom']=t3_1['s_nom_A']
+		t3_1['x']=t3_1['x']/s_system
+		t3_1['r']=t3_1['r']/s_system
 		t3_1['v0']=t3_1['v_nom_1']
 		t3_1['v1']=t3_1['aux_bus_v_nom']
 		t3_1['wind0']=t3_1['wind1']
@@ -239,9 +246,11 @@ def format_transformer(df,s_system=100):
 		t3_1['name'] = 'three_wind_I_'+t3_1['trans_id']
 		t3_1=t3_1[trans_cols]
 		
-		t3_2 = t3.copy().rename(index=str,columns={'J':'bus1','x1':'x','r1':'r','RATA2':'s_nom_A','RATB2':'s_nom_B','RATC2':'s_nom_C','ANG2':'phase_shift'})
+		t3_2 = t3.copy().rename(index=str,columns={'J':'bus1','x2':'x','r2':'r','RATA2':'s_nom_A','RATB2':'s_nom_B','RATC2':'s_nom_C','ANG2':'phase_shift','STAT':'status'})
 		t3_2['bus0']=t3_2['aux_bus']
 		t3_2['s_nom']=t3_2['s_nom_A']
+		t3_2['x']=t3_2['x']/s_system
+		t3_2['r']=t3_2['r']/s_system
 		t3_2['v0']=t3_2['aux_bus_v_nom']
 		t3_2['v1']=t3_2['v_nom_2']
 		t3_2['wind0']=t3_2['aux_bus_wind']
@@ -249,9 +258,11 @@ def format_transformer(df,s_system=100):
 		t3_2['name'] = 'three_wind_J_'+t3_2['trans_id']
 		t3_2=t3_2[trans_cols]
 		
-		t3_3 = t3.copy().rename(index=str,columns={'K':'bus1','x1':'x','r1':'r','RATA3':'s_nom_A','RATB3':'s_nom_B','RATC3':'s_nom_C','ANG3':'phase_shift'})
+		t3_3 = t3.copy().rename(index=str,columns={'K':'bus1','x3':'x','r3':'r','RATA3':'s_nom_A','RATB3':'s_nom_B','RATC3':'s_nom_C','ANG3':'phase_shift','STAT':'status'})
 		t3_3['bus0']=t3_3['aux_bus']
 		t3_3['s_nom']=t3_3['s_nom_A']
+		t3_3['x']=t3_3['x']/s_system
+		t3_3['r']=t3_3['r']/s_system
 		t3_3['v0']=t3_3['aux_bus_v_nom']
 		t3_3['v1']=t3_3['v_nom_3']
 		t3_3['wind0']=t3_3['aux_bus_wind']
