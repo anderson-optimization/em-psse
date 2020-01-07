@@ -150,10 +150,10 @@ def format_transformer(df,s_system=100):
 			s_unit = item[s_nom_field]
 			r = item[field]
 			if cz == 1:
-				# In system base, convert to unit
+				# In system base, convert to 1 MVA base
 				r = r/s_system
 			elif cz  == 2:
-				# in unit base
+				# in unit base, convert to 1 MVA base
 				r = r/s_unit
 			else:
 				# watts to MVA w/ 1 MVA base, unit power factor
@@ -206,15 +206,25 @@ def format_transformer(df,s_system=100):
 		t3['r23']=t3.apply(get_r_field('R2-3','SBASE2-3'),axis=1)
 		t3['r31']=t3.apply(get_r_field('R3-1','SBASE3-1'),axis=1)
 
-		# These are power world calculations to convert impedence.  We actually want in unit base though.  Convert in following section.
-		t3['r1']=s_system/2 * (t3['r12']/t3['SBASE1-2'] - t3['r23']/t3['SBASE2-3'] + t3['r31']/t3['SBASE3-1'])
-		t3['x1']=s_system/2 * (t3['x12']/t3['SBASE1-2'] - t3['x23']/t3['SBASE2-3'] + t3['x31']/t3['SBASE3-1'])
+		# # These are power world calculations to convert impedence.  We actually want in unit base though.  Convert in following section.
+		# t3['r1']=s_system/2 * (t3['r12']/t3['SBASE1-2'] - t3['r23']/t3['SBASE2-3'] + t3['r31']/t3['SBASE3-1'])
+		# t3['x1']=s_system/2 * (t3['x12']/t3['SBASE1-2'] - t3['x23']/t3['SBASE2-3'] + t3['x31']/t3['SBASE3-1'])
 
-		t3['r2']=s_system/2 * (t3['r12']/t3['SBASE1-2'] + t3['r23']/t3['SBASE2-3'] - t3['r31']/t3['SBASE3-1'])
-		t3['x2']=s_system/2 * (t3['x12']/t3['SBASE1-2'] + t3['x23']/t3['SBASE2-3'] - t3['x31']/t3['SBASE3-1'])
+		# t3['r2']=s_system/2 * (t3['r12']/t3['SBASE1-2'] + t3['r23']/t3['SBASE2-3'] - t3['r31']/t3['SBASE3-1'])
+		# t3['x2']=s_system/2 * (t3['x12']/t3['SBASE1-2'] + t3['x23']/t3['SBASE2-3'] - t3['x31']/t3['SBASE3-1'])
 
-		t3['r3']=s_system/2 * (-t3['r12']/t3['SBASE1-2'] + t3['r23']/t3['SBASE2-3'] + t3['r31']/t3['SBASE3-1'])
-		t3['x3']=s_system/2 * (-t3['x12']/t3['SBASE1-2'] + t3['x23']/t3['SBASE2-3'] + t3['x31']/t3['SBASE3-1'])
+		# t3['r3']=s_system/2 * (-t3['r12']/t3['SBASE1-2'] + t3['r23']/t3['SBASE2-3'] + t3['r31']/t3['SBASE3-1'])
+		# t3['x3']=s_system/2 * (-t3['x12']/t3['SBASE1-2'] + t3['x23']/t3['SBASE2-3'] + t3['x31']/t3['SBASE3-1'])
+		
+		# These ones appear to work, since we make base corrections in get_x_field/get_r_field
+		t3['r1']=s_system/2 * (t3['r12'] - t3['r23'] + t3['r31'])
+		t3['x1']=s_system/2 * (t3['x12'] - t3['x23'] + t3['x31'])
+
+		t3['r2']=s_system/2 * (t3['r12'] + t3['r23'] - t3['r31'])
+		t3['x2']=s_system/2 * (t3['x12'] + t3['x23'] - t3['x31'])
+
+		t3['r3']=s_system/2 * (-t3['r12'] + t3['r23'] + t3['r31'])
+		t3['x3']=s_system/2 * (-t3['x12'] + t3['x23'] + t3['x31'])
 
 		# out = t3.iloc[266].to_dict()
 
@@ -243,31 +253,31 @@ def format_transformer(df,s_system=100):
 		t3_1['v1']=t3_1['aux_bus_v_nom']
 		t3_1['wind0']=t3_1['wind1']
 		t3_1['wind1']=t3_1['aux_bus_wind']
-		t3_1['name'] = 'three_wind_I_'+t3_1['trans_id']
+		t3_1['name'] = 'three_wind_'+t3_1['trans_id']+'_I'
 		t3_1=t3_1[trans_cols]
 		
-		t3_2 = t3.copy().rename(index=str,columns={'J':'bus1','x2':'x','r2':'r','RATA2':'s_nom_A','RATB2':'s_nom_B','RATC2':'s_nom_C','ANG2':'phase_shift','STAT':'status'})
-		t3_2['bus0']=t3_2['aux_bus']
+		t3_2 = t3.copy().rename(index=str,columns={'J':'bus0','x2':'x','r2':'r','RATA2':'s_nom_A','RATB2':'s_nom_B','RATC2':'s_nom_C','ANG2':'phase_shift','STAT':'status'})
+		t3_2['bus1']=t3_2['aux_bus']
 		t3_2['s_nom']=t3_2['s_nom_A']
 		t3_2['x']=t3_2['x']/s_system
 		t3_2['r']=t3_2['r']/s_system
-		t3_2['v0']=t3_2['aux_bus_v_nom']
-		t3_2['v1']=t3_2['v_nom_2']
-		t3_2['wind0']=t3_2['aux_bus_wind']
-		t3_2['wind1']=t3_2['wind2']
-		t3_2['name'] = 'three_wind_J_'+t3_2['trans_id']
+		t3_2['v0']=t3_2['v_nom_2']
+		t3_2['v1']=t3_2['aux_bus_v_nom']
+		t3_2['wind0']=t3_2['wind2']
+		t3_2['wind1']=t3_2['aux_bus_wind']
+		t3_2['name'] = 'three_wind_'+t3_2['trans_id']+'_J'
 		t3_2=t3_2[trans_cols]
 		
-		t3_3 = t3.copy().rename(index=str,columns={'K':'bus1','x3':'x','r3':'r','RATA3':'s_nom_A','RATB3':'s_nom_B','RATC3':'s_nom_C','ANG3':'phase_shift','STAT':'status'})
-		t3_3['bus0']=t3_3['aux_bus']
+		t3_3 = t3.copy().rename(index=str,columns={'K':'bus0','x3':'x','r3':'r','RATA3':'s_nom_A','RATB3':'s_nom_B','RATC3':'s_nom_C','ANG3':'phase_shift','STAT':'status'})
+		t3_3['bus1']=t3_3['aux_bus']
 		t3_3['s_nom']=t3_3['s_nom_A']
 		t3_3['x']=t3_3['x']/s_system
 		t3_3['r']=t3_3['r']/s_system
-		t3_3['v0']=t3_3['aux_bus_v_nom']
-		t3_3['v1']=t3_3['v_nom_3']
-		t3_3['wind0']=t3_3['aux_bus_wind']
-		t3_3['wind1']=t3_3['wind3']
-		t3_3['name'] = 'three_wind_K_'+t3_3['trans_id']
+		t3_3['v0']=t3_3['v_nom_3']
+		t3_3['v1']=t3_3['aux_bus_v_nom']
+		t3_3['wind0']=t3_3['wind3']
+		t3_3['wind1']=t3_3['aux_bus_wind']
+		t3_3['name'] = 'three_wind_'+t3_3['trans_id']+'_K'
 		t3_3=t3_3[trans_cols]
 		
 

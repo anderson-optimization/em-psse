@@ -14,6 +14,6 @@ do
 	name=${bn%.*}
 	echo "Parse Raw ${name} $i"
 	echo "python3 lib/em-psse/network.py --input \"$i\" --name \"${name}\" --export --store ev-data.h5"
-	python3 lib/em-psse/network.py --input "$i" --name "$name" --export --store ${STORE}
+	python3 lib/em-psse/network.py --input "$i" --name "$name" --export --store ${STORE} --refresh
 done
 
