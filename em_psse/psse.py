@@ -2,15 +2,19 @@
 import yaml
 from io import StringIO
 import pandas as pd
+import sys
 
 import logging
 logger = logging.getLogger('em.psse')
 
 import os
 dirname = os.path.dirname(__file__)
-with open('{}/psse-modes.yaml'.format(dirname),'r') as in_file:
-	modes = yaml.load(in_file)
+with open('{}/psse-modes.v2.yaml'.format(dirname),'r') as in_file:
+	modes = yaml.safe_load(in_file)
 
+
+def is_comment(line):
+	return line.startswith('@!')
 
 	
 def get_signals(line_num,line,current_mode):
@@ -63,6 +67,10 @@ def read_transformer(lines,records):
 		
 		for r in range(len(rows)):
 			line_holder[windings][r].append(rows[r])
+
+		# for row in rows:
+		# 	print('Reading line {} {}'.format(windings,row))
+		#sys.exit()
 	
 	dfs={
 		2:[],
@@ -73,9 +81,10 @@ def read_transformer(lines,records):
 		for record in line_holder[winding]:
 			rc+=1
 			text = StringIO(''.join(record))
-			dfs[winding].append(pd.read_table(text,sep=',', error_bad_lines=False))
-			logger.debug("{} {} {}".format(winding,rc,len(record)))
-			logger.debug("{}".format(record[0]))
+			table = pd.read_table(text,sep=',', error_bad_lines=False) #.reset_index()
+			dfs[winding].append(table)
+			# print("{} {} {}".format(winding,rc,len(record)))
+			# print("{}".format(record[0]))
 	return dfs
 
 def read_twodc(lines,records):
@@ -111,6 +120,7 @@ def parse_raw(in_file_name):
 	"""
 	This function will parse a RAW file and return a PyPSA model
 	"""
+	logger.debug('Parsing raw file={}'.format(in_file_name))
 
 	# Initialize output
 	output ={}
@@ -150,6 +160,8 @@ def parse_raw(in_file_name):
 			START = None
 			STOP = None
 			
+
+
 			# Process signals
 			signals = get_signals(line_num,line,current_mode)
 			for signal,mode in signals:
@@ -164,7 +176,10 @@ def parse_raw(in_file_name):
 			
 
 			# Store lines
-			if current_mode and (not STOP or 'keep_tail' in STOP):
+			if is_comment(line):
+				pass
+#				print('Comment?',line)
+			elif current_mode and (not STOP or 'keep_tail' in STOP):
 				key = current_mode['key']
 				output[key]['lines'].append(line)
 				#print key
@@ -191,20 +206,24 @@ def parse_raw(in_file_name):
 		if len(lines)==1:
 			logger.debug('only header {}'.format(i))
 			continue
-		
-		if 'read_table' in output[i]['parse']:
-			text = StringIO(''.join(lines))
-			output[i]['df'] = pd.read_table(text,sep=',')
-		
-		if 'read_transformer' in output[i]['parse']:
-			output[i]['dfs']=read_transformer(lines,output[i]['records'])
-			df2=pd.concat(output[i]['dfs'][2],axis=1, sort=False)
-			df3=pd.concat(output[i]['dfs'][3],axis=1, sort=False)
-			output[i]['df']=df3.append(df2,sort=False)
 
-		if 'read_twodc' in output[i]['parse']:
-			output[i]['dfs']=read_twodc(lines,output[i]['records'])
-			output[i]['df']=pd.concat(output[i]['dfs'],axis=1, sort=False)
+		try:
+			if 'read_table' in output[i]['parse']:
+				text = StringIO(''.join(lines))
+				output[i]['df'] = pd.read_table(text,sep=',')
+			
+			if 'read_transformer' in output[i]['parse']:
+				output[i]['dfs']=read_transformer(lines,output[i]['records'])
+				df2=pd.concat(output[i]['dfs'][2],axis=1, sort=False)
+				df3=pd.concat(output[i]['dfs'][3],axis=1, sort=False)
+				output[i]['df']=pd.concat([df3,df2],sort=False)
+			if 'read_twodc' in output[i]['parse']:
+				output[i]['dfs']=read_twodc(lines,output[i]['records'])
+				output[i]['df']=pd.concat(output[i]['dfs'],axis=1, sort=False)
+		except Exception as e:
+			logger.error(e)
+			logger.error('Error parsing {} - {}'.format(i,output[i]['parse']))
+			sys.exit(1)
 
 
 		

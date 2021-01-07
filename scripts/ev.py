@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 
 import sys
-print(sys.argv)
+print("args",sys.argv)
 import argparse
 import logging
 
@@ -44,7 +44,7 @@ parser.add_argument(
 
 
 args = parser.parse_args()
-print(args.name)
+print("name",args.name)
 logging.basicConfig(level=args.loglevel)
 store = pd.HDFStore(args.store)
 

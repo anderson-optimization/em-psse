@@ -1,6 +1,7 @@
 STORE=ev-data.h5
+DATE=$1
 
-for i in ev/ERCOT*.xls; 
+for i in data/ev/ERCOT*.xls; 
 do 
 	bn=$(basename $i)
 	name=${bn%.*}
@@ -8,7 +9,7 @@ do
 	python3 lib/em-psse/scripts/ev.py  -n "${name}" --input "${i}" --store ${STORE}
 done
 
-for i in ev/ERCOT*.raw; 
+for i in data/ev/ERCOT*.raw; 
 do 
 	bn=$(basename $i)
 	name=${bn%.*}

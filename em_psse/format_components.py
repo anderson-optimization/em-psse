@@ -7,8 +7,8 @@ import pandas as pd
 def format_load(df):
 	logger.debug('Formatting load {}'.format(len(df)))
 	df.index = 'load'+df['I'].astype(str) + '_' + df['ID'].str.replace(' ','').str.replace("'",'')
-	df = df.rename(index=str,columns={'I':'bus','PL':'p_set','QL':'q_set','STATUS':'status'})
-	return df[['bus','p_set','q_set','status']]
+	df = df.rename(index=str,columns={'I':'bus','PL':'p_set','QL':'q_set','STATUS':'status','OWNER':'owner','SCALE':'scale','INTRPT':'interrupt','DGENP':'dgenp','DGENQ':'dgenq','DGENF':'dgenf'})
+	return df[['bus','p_set','q_set','status','owner','scale','interrupt','dgenp','dgenq','dgenf']]
 
 def format_bus(df):
 	logger.debug('Formatting bus {}'.format(len(df)))		
@@ -18,15 +18,15 @@ def format_bus(df):
 
 def format_branch(df):
 	logger.debug('Formatting branch {}'.format(len(df)))		
-	df.index = 'branch'+df['I'].astype(str) + '_'+df['J'].astype(str) + '_' + df['CKT'].str.replace(' ','').str.replace("'",'')
-	df = df.rename(index=str,columns={'I':'bus0','J':'bus1','X':'x','R':'r','B':'b','RATEA':'s_nom_A','RATEB':'s_nom_B','RATEC':'s_nom_C','CKT':'circuit','LEN':'length','ST':'status'})
+	df.index = 'branch'+df['I'].astype(str) + '_'+df['J'].astype(str) + '_' + df['CKT'].astype(str).str.replace(' ','').str.replace("'",'')
+	df = df.rename(index=str,columns={'I':'bus0','J':'bus1','X':'x','R':'r','B':'b','RATE1':'s_nom_A','RATE2':'s_nom_B','RATE3':'s_nom_C','CKT':'circuit','LEN':'length','ST':'status'})
 	return df[['bus0','bus1','x','r','b','s_nom_A','s_nom_B','s_nom_C','length','circuit','status']]
 
 def format_gen(df):
 	logger.debug('Formatting gen {}'.format(len(df)))
 	df.index = 'gen'+df['I'].astype(str) + '_' +df['ID'].str.replace(' ','').str.replace("'",'')
-	df = df.rename(index=str,columns={'I':'bus','PT':'p_nom','PG':'p_gen','PB':'p_min','QG':'q_gen','QT':'q_nom','QB':'q_min','STAT':'status'})
-	return df[['bus','p_nom','p_gen','p_min','q_gen','q_nom','q_min','status']]
+	df = df.rename(index=str,columns={'I':'bus','PT':'p_nom','PG':'p_gen','PB':'p_min','QG':'q_gen','QB':'q_nom','STAT':'status','ID':'id','MBASE':'mbase'})
+	return df[['bus','id','p_nom','p_gen','p_min','q_gen','q_nom','status','mbase']]
 
 def format_area(df):
 	logger.debug('Formatting area {}'.format(len(df)))
@@ -184,8 +184,8 @@ def format_transformer(df,s_system=100):
 	t3=df[df['K']!=0].copy()
 
 	## Two winding transformers
-	t2['name'] = ('two_wind_'+t2['I'].astype(str) + '_' +t2['J'].astype(str) + '_' + t2['CKT']).str.replace(' ','').str.replace("'",'')
-	t2 = t2.rename(index=str,columns={'I':'bus0','J':'bus1','X1-2':'x','R1-2':'r','RATA1':'s_nom_A','RATB1':'s_nom_B','RATC1':'s_nom_C','ANG1':'phase_shift','STAT':'status'})
+	t2['name'] = ('two_wind_'+t2['I'].astype(str) + '_' +t2['J'].astype(str) + '_' + t2['CKT'].astype(str)).str.replace(' ','').str.replace("'",'')
+	t2 = t2.rename(index=str,columns={'I':'bus0','J':'bus1','X1-2':'x','R1-2':'r','RATE1-1':'s_nom_A','RATE1-2':'s_nom_B','RATE1-3':'s_nom_C','ANG1':'phase_shift','STAT':'status'})
 	t2['s_nom']=t2['s_nom_A']
 	t2['v0']=t2['NOMV1']
 	t2['v1']=t2['NOMV2']
@@ -244,7 +244,7 @@ def format_transformer(df,s_system=100):
 		t3['wind2']=t3.apply(get_winding('v_nom_2','WINDV2'),axis=1)
 		t3['wind3']=t3.apply(get_winding('v_nom_3','WINDV3'),axis=1)
 
-		t3_1 = t3.copy().rename(index=str,columns={'I':'bus0','x1':'x','r1':'r','RATA1':'s_nom_A','RATB1':'s_nom_B','RATC1':'s_nom_C','ANG1':'phase_shift','STAT':'status'})
+		t3_1 = t3.copy().rename(index=str,columns={'I':'bus0','x1':'x','r1':'r','RATE1-1':'s_nom_A','RATE1-2':'s_nom_B','RATE1-3':'s_nom_C','ANG1':'phase_shift','STAT':'status'})
 		t3_1['bus1']=t3_1['aux_bus']
 		t3_1['s_nom']=t3_1['s_nom_A']
 		t3_1['x']=t3_1['x']/s_system
@@ -256,7 +256,7 @@ def format_transformer(df,s_system=100):
 		t3_1['name'] = 'three_wind_'+t3_1['trans_id']+'_I'
 		t3_1=t3_1[trans_cols]
 		
-		t3_2 = t3.copy().rename(index=str,columns={'J':'bus0','x2':'x','r2':'r','RATA2':'s_nom_A','RATB2':'s_nom_B','RATC2':'s_nom_C','ANG2':'phase_shift','STAT':'status'})
+		t3_2 = t3.copy().rename(index=str,columns={'J':'bus0','x2':'x','r2':'r','RATE2-1':'s_nom_A','RATE2-2':'s_nom_B','RATE2-3':'s_nom_C','ANG2':'phase_shift','STAT':'status'})
 		t3_2['bus1']=t3_2['aux_bus']
 		t3_2['s_nom']=t3_2['s_nom_A']
 		t3_2['x']=t3_2['x']/s_system
@@ -268,7 +268,7 @@ def format_transformer(df,s_system=100):
 		t3_2['name'] = 'three_wind_'+t3_2['trans_id']+'_J'
 		t3_2=t3_2[trans_cols]
 		
-		t3_3 = t3.copy().rename(index=str,columns={'K':'bus0','x3':'x','r3':'r','RATA3':'s_nom_A','RATB3':'s_nom_B','RATC3':'s_nom_C','ANG3':'phase_shift','STAT':'status'})
+		t3_3 = t3.copy().rename(index=str,columns={'K':'bus0','x3':'x','r3':'r','RATE3-1':'s_nom_A','RATE3-2':'s_nom_B','RATE3-3':'s_nom_C','ANG3':'phase_shift','STAT':'status'})
 		t3_3['bus1']=t3_3['aux_bus']
 		t3_3['s_nom']=t3_3['s_nom_A']
 		t3_3['x']=t3_3['x']/s_system
@@ -313,5 +313,10 @@ def format_all(raw_data):
 	out={}
 	for i in raw_data:
 		if 'df' in raw_data[i] and i in format_dict:
+			df = raw_data[i]['df']
+			# Coerce columns
+			if 'ID' in df:
+				df['ID']=df['ID'].astype(str)
+
 			out[i]=format_dict[i](raw_data[i]['df'])
 	return out

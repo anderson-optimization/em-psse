@@ -49,7 +49,7 @@ args = parser.parse_args()
 logging.basicConfig(level=args.loglevel)
 store = pd.HDFStore(args.store)
 
-
+logger.debug('Parsing raw file {}'.format(args.input))
 
 # Load RAW Data
 raw_data = parse_raw(args.input)
